@@ -1,0 +1,17 @@
+export const fileTypes = [
+  ".cpp",
+  ".go",
+  ".java",
+  ".js",
+  ".php",
+  ".proto",
+  ".py",
+  ".rst",
+  ".rs",
+  ".rb",
+  ".scala",
+  ".swift",
+  ".md",
+  ".tex",
+  ".html",
+];
