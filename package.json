@@ -1,23 +1,42 @@
 {
-  "name": "ai-docs-package",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "ai-docs",
+  "version": "1.0.3",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "author": "kgricour <kevin@polyfact.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/polyfact/ai-docs.git"
+  },
+  "bugs": {
+    "url": "https://github.com/polyfact/ai-docs/issues"
+  },
+  "homepage": "https://github.com/polyfact/ai-docs#readme",
+  "keywords": [
+    "AI",
+    "documentation",
+    "generator"
+  ],
   "scripts": {
     "lint": "eslint . --ext .ts",
     "build": "tsc",
     "start": "node index.js",
     "test": "mocha test/**/*.ts",
-    "test:watch": "mocha --watch"
+    "test:watch": "mocha --watch",
+    "prepare": "husky install"
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@types/lodash": "^4.14.195",
+    "ai-docs-package": "^1.0.2",
     "dotenv": "^16.3.1",
     "io-ts": "^2.2.20",
     "langchain": "^0.0.108",
     "lodash": "^4.17.21",
-    "polyfact": "^0.1.7",
+    "polyfact": "^0.1.9",
     "ts-dedent": "^2.2.0"
   },
   "devDependencies": {
@@ -31,6 +50,7 @@
     "eslint-plugin-import": "^2.25.2",
     "eslint-plugin-n": "^15.0.0",
     "eslint-plugin-promise": "^6.0.0",
+    "husky": "^8.0.3",
     "mocha": "^10.2.0",
     "typescript": "*"
   },

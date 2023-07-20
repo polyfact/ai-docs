@@ -1,5 +1,5 @@
 import { basename, dirname, extname, join } from "path";
-import { Reference, File, Languages } from "../types";
+import { File, Languages } from "../types";
 import {
   RecursiveCharacterTextSplitter,
   TokenTextSplitter,

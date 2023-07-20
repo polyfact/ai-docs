@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { Reference, File } from "./types";
-import { generateWithTypeWithTokenUsage } from "polyfact";
-import * as t from "io-ts";
+import { generateWithType, t } from "polyfact";
 
 import dotenv from "dotenv";
 import { chunkBigFiles, splitFilesByTokenCount } from "./utils/splitter";
@@ -13,146 +12,32 @@ const { TOKEN_LIMIT, BATCH_SIZE } = process.env;
 const maxTokens = Number(TOKEN_LIMIT);
 const batchSize = Number(BATCH_SIZE);
 
-// function formatReferencePrompt(content: string, path: string): string {
-//   return `
-//   Examine the provided content from file ${path} :
-//   \`\`\`\n ${content}\n\`\`\`
-
-//   Write a JSON object that describes that will be used to generate the reference of the file.
-//   The string inside the JSON must be plain text, and not contain any markdown or HTML.
-//   The JSON object should follow this type:
-//   \`\`\`
-//   {
-//       "description": string, // A 200 word description of the file and what it's used for.
-//       "references": [
-//           {
-//               "name": string, // The name of the function/method/class/type/structure/etc...
-//               "category": "function" | "method" | "class" | "type" | "structure" | "enum" | string,
-//               "prototype": string, // The prototype of the function or method. Should only be used for functions and methods.
-//               "enum": [string], // The possible values of the enum. Should only be used for enums.
-//               "description": string, // A 100 word description of its purpose.
-//               "keywords": string[], // A list of keywords that can be used to search for this reference.
-//               "parameters": [
-//                   {
-//                       "name": string,
-//                       "type": string,
-//                       "description": string, // A description of the purpose of the parameter.
-//                   }
-//               ],
-//               "returns": {
-//                   "type": string,
-//                   "description": string, // A description of the purpose of the return value.
-//               }
-//               "public": boolean,
-//               "subreferences": [
-//                   ... // A list of references that are contained within this reference following the same format (e.g. methods within a class)
-//               ]
-//               "errors": [
-//                   {
-//                       "name": string,
-//                       "description": string,
-//                   }
-//               ],
-//           }
-//       ],
-//       "examples": [
-//           {
-//               "title": string,
-//               "description": string,
-//               "example": string, // A commented code example that uses the functions in the reference. If the examples are bash command, make it so it's runnable from the root of the project and use the most standard way of running it. (This file path: \`root/${path}\`)
-//               "example_markdown_language": "python" | "rust" | "ruby" | "c" | "bash" | string,
-//           }
-//       ]
-//   }
-//   \`\`\`
-//   Write as much example code as you can, and make sure to include comments that explain what the code does.
-//   Include all the possible errors that can occur.
-//   Only add the references of things that are defined in the file. Don't include imports or dependencies.
-//   Don't forget to make it so all the examples are runnable from the root of the project (This file path: \`root/${path}\`). YOU SHOULD NOT ASSUME THE USER IS ANYWHERE ELSE THAN THE ROOT DIRECTORY.
-//   To launch from the root directory, if the project contains multiple modules (which is clear by the fact that the lib/src path is not directly a child of the root directory), use the most standard way of running it. For example, in python you should use \`python -m <module>\`, in rust you should use \`cargo run --bin <bin>\`, etc...
-//   If the project doesn't appear to use modules and the code is directly in the root directory, don't use the module/bin.
-//   For example, a file located at \`root/src/main.rs\` should be runnable with \`cargo run\` from the root directory while a file located at \`root/module-a/src/main.rs\` should be runnable with \`cargo run --bin module-a\` from the root directory.
-//   If some command line arguments are defined in the file, don't forget to include them in the example. If the command line tool is not clear, replace it with <base_command>. (e.g. \`<base_command> --arg1 path1\`)
-//   The example should contain the command and command lines arguments only if the file is clearly defining a cli command or argument. If it is clearly related to CLI, don't forget to include the command line usage in the example as a bash program. You can use <base_command> is the base command is not defined in the file.
-//   ALL THE CLI COMMANDS USAGE DEFINED SHOULD BE EXPLICITLY WRITTEN IN THE EXAMPLES IN A COMMENTED BASH PROGRAM.
-
-//   Please only provide the JSON in a single json markdown code block with the keys described above. Do not include any other text.
-//   If the content is not code or doesn't define anything, just return "None" and nothing else.
-//   If at least one function is defined, you're not allowed to return None.
-//   You must include all the functions defined in the reference.
-//   Please make sure the JSON is a single line and does not contain any newlines outside of the strings.
-//   `;
-// }
-
 function formatReferencePrompt(content: string, path: string): string {
   return `
-    Examine the provided content from file ${path} :
-    \`\`\`\n ${content}\n\`\`\`
-    
-    Write a JSON object that describes that will be used to generate the reference of the file.
-    The string inside the JSON must be plain text, and not contain any markdown or HTML.
-    The JSON object should follow this type:
-    \`\`\`
-    {
-        "description": string, // A 200 word description of the file and what it's used for.
-        "references": [
-            {
-                "name": string, // The name of the function/method/class/type/structure/etc...
-                "prototype": string, // The prototype of the function or method. Should only be used for functions and methods.
-                "enum": [string], // The possible values of the enum. Should only be used for enums.
-                "description": string, // A 100 word description of its purpose.
-                "keywords": string[], // A list of keywords that can be used to search for this reference.
-                "parameters": [
-                    {
-                        "name": string,
-                        "type": string,
-                        "description": string, // A description of the purpose of the parameter.
-                    }
-                ],
-                "returns": {
-                    "type": string,
-                    "description": string, // A description of the purpose of the return value.
-                }
-                "errors": [
-                    {
-                        "name": string,
-                        "description": string,
-                    }
-                ],
-            }
-        ],
-        "examples": [
-            {
-                "title": string,
-                "description": string,
-                "example": string, // A commented code example that uses the functions in the reference. If the examples are bash command, make it so it's runnable from the root of the project and use the most standard way of running it. (This file path: \`root/${path}\`)
-            }
-        ]
-    }
-    \`\`\`
-    Write as much example code as you can, and make sure to include comments that explain what the code does.
-    Include all the possible errors that can occur.
-    Only add the references of things that are defined in the file. Don't include imports or dependencies.
-    Don't forget to make it so all the examples are runnable from the root of the project (This file path: \`root/${path}\`). YOU SHOULD NOT ASSUME THE USER IS ANYWHERE ELSE THAN THE ROOT DIRECTORY.
-    To launch from the root directory, if the project contains multiple modules (which is clear by the fact that the lib/src path is not directly a child of the root directory), use the most standard way of running it. For example, in python you should use \`python -m <module>\`, in rust you should use \`cargo run --bin <bin>\`, etc...
-    If the project doesn't appear to use modules and the code is directly in the root directory, don't use the module/bin.
-    For example, a file located at \`root/src/main.rs\` should be runnable with \`cargo run\` from the root directory while a file located at \`root/module-a/src/main.rs\` should be runnable with \`cargo run --bin module-a\` from the root directory.
-    If some command line arguments are defined in the file, don't forget to include them in the example. If the command line tool is not clear, replace it with <base_command>. (e.g. \`<base_command> --arg1 path1\`)
-    The example should contain the command and command lines arguments only if the file is clearly defining a cli command or argument. If it is clearly related to CLI, don't forget to include the command line usage in the example as a bash program. You can use <base_command> is the base command is not defined in the file.
-    ALL THE CLI COMMANDS USAGE DEFINED SHOULD BE EXPLICITLY WRITTEN IN THE EXAMPLES IN A COMMENTED BASH PROGRAM.
-    
-    Please only provide the JSON in a single json markdown code block with the keys described above. Do not include any other text.
-    If the content is not code or doesn't define anything, just return "None" and nothing else.
-    If at least one function is defined, you're not allowed to return None.
-    You must include all the functions defined in the reference.
-    Please make sure the JSON is a single line and does not contain any newlines outside of the strings.
-    `;
+  Examine the provided content from file ${path} :
+  \`\`\`\n ${content}\n\`\`\`
+
+  Write as much example code as you can, and make sure to include comments that explain what the code does.
+  Include all the possible errors that can occur.
+  Only add the references of things that are defined in the file. Don't include imports or dependencies.
+  Don't forget to make it so all the examples are runnable from the root of the project (This file path: \`root/${path}\`). YOU SHOULD NOT ASSUME THE USER IS ANYWHERE ELSE THAN THE ROOT DIRECTORY.
+  To launch from the root directory, if the project contains multiple modules (which is clear by the fact that the lib/src path is not directly a child of the root directory), use the most standard way of running it. For example, in python you should use \`python -m <module>\`, in rust you should use \`cargo run --bin <bin>\`, etc...
+  If the project doesn't appear to use modules and the code is directly in the root directory, don't use the module/bin.
+  For example, a file located at \`root/src/main.rs\` should be runnable with \`cargo run\` from the root directory while a file located at \`root/module-a/src/main.rs\` should be runnable with \`cargo run --bin module-a\` from the root directory.
+  If some command line arguments are defined in the file, don't forget to include them in the example. If the command line tool is not clear, replace it with <base_command>. (e.g. \`<base_command> --arg1 path1\`)
+  The example should contain the command and command lines arguments only if the file is clearly defining a cli command or argument. If it is clearly related to CLI, don't forget to include the command line usage in the example as a bash program. You can use <base_command> is the base command is not defined in the file.
+  ALL THE CLI COMMANDS USAGE DEFINED SHOULD BE EXPLICITLY WRITTEN IN THE EXAMPLES IN A COMMENTED BASH PROGRAM.
+
+  You must include all the functions defined in the reference.
+  `;
 }
 
 const ReferenceParameter = t.type({
   name: t.string,
   type: t.string,
-  description: t.string,
+  description: t.string.description(
+    "A description of the purpose of the parameter"
+  ),
 });
 
 const ErrorType = t.type({
@@ -162,55 +47,81 @@ const ErrorType = t.type({
 
 const ReturnsType = t.type({
   type: t.string,
-  description: t.string,
+  description: t.string.description(
+    "A description of the purpose of the return value."
+  ),
 });
 
 const Example = t.type({
   title: t.string,
   description: t.string,
-  example: t.string,
-  //   example_markdown_language: t.keyof({
-  //     python: null,
-  //     rust: null,
-  //     ruby: null,
-  //     c: null,
-  //     bash: null,
-  //   }),
+  example: t.string.description(
+    "A commented code example that uses the functions in the reference. If the examples are bash command, make it so it's runnable from the root of the project and use the most standard way of running it. (This file path: `root/${path}`)"
+  ),
+  example_markdown_language: t.keyof({
+    python: null,
+    rust: null,
+    ruby: null,
+    c: null,
+    bash: null,
+  }),
 });
 
 const TReference = t.type({
-  name: t.string,
-  //   category: t.keyof({
-  //     function: null,
-  //     method: null,
-  //     class: null,
-  //     type: null,
-  //     structure: null,
-  //     enum: null,
-  //   }),
-  prototype: t.string,
-  enum: t.array(t.string),
-  description: t.string,
-  keywords: t.array(t.string),
+  name: t.string.description(
+    "The name of the function/method/class/type/structure/etc..."
+  ),
+  category: t
+    .keyof({
+      function: null,
+      method: null,
+      class: null,
+      type: null,
+      structure: null,
+      enum: null,
+    })
+    .description(
+      'function" | "method" | "class" | "type" | "structure" | "enum" | string'
+    ),
+  prototype: t.string.description(
+    "The prototype of the function or method. Should only be used for functions and methods."
+  ),
+  description: t.string.description("A 100 word description of its purpose."),
   parameters: t.array(ReferenceParameter),
   returns: ReturnsType,
-  //   publics: t.boolean,
-  errors: t.array(ErrorType),
 });
 
-// const TReferenceWithSubreferences = t.intersection([
-//   TReference,
-//   t.type({
-//     subreferences: t.array(TReference),
-//   }),
-// ]);
+const TPartialReference = t.partial({
+  errors: t.array(ErrorType),
+  subreferences: t
+    .array(TReference)
+    .description(
+      "A list of references that are contained within this reference following the same format (e.g. methods within a class)"
+    ),
+  keywords: t
+    .array(t.string)
+    .description(
+      "A list of keywords that can be used to search for this reference."
+    ),
+  publics: t.boolean,
+  enum: t
+    .array(t.string)
+    .description(
+      "The possible values of the enum. Should only be used for enums."
+    ),
+});
+
+const TReferenceWithSubreferences = t.intersection([
+  TReference,
+  TPartialReference,
+]);
 
 const ReferenceType = t.type({
-  description: t.string,
-  //   references: t.array(TReferenceWithSubreferences),
-  references: t.array(TReference),
+  description: t.string.description(
+    "A 200 word description of the file and what it's used for."
+  ),
+  references: t.array(TReferenceWithSubreferences),
   examples: t.array(Example),
-  //   hasReference: t.string,
 });
 
 async function processForEachFile(
@@ -255,24 +166,23 @@ async function generateFileReference(
   let reference;
 
   try {
-    reference = await generateWithTypeWithTokenUsage(prompt, ReferenceType);
+    reference = await generateWithType(prompt, ReferenceType);
   } catch (error) {
-    console.log(error);
-    updateFileProgress(updatedFile);
-
-    return updatedFile;
+    throw error;
   }
 
-  if (Boolean(!reference?.result?.references?.length)) {
+  if (Boolean(!reference?.references?.length)) {
     console.info(`Skipped file: ${file.path}`);
     updateFileProgress(file);
 
     return file;
   }
 
-  const fileReferenceJson = reference.result;
-
-  updatedFile = { ...updatedFile, reference_json: fileReferenceJson };
+  updatedFile = {
+    ...updatedFile,
+    reference_json: reference,
+    originalPath: path,
+  };
 
   updateFileProgress(updatedFile);
 
@@ -301,6 +211,15 @@ function mergeFiles(file1: Reference, file2: Reference): Reference {
       ? f2.reference_json.references
       : [];
 
+  let e1 =
+    f1.reference_json && f1.reference_json.examples
+      ? f1.reference_json.examples
+      : [];
+  let e2 =
+    f2.reference_json && f2.reference_json.examples
+      ? f2.reference_json.examples
+      : [];
+
   let c1 = f1.content ? f1.content : "";
   let c2 = f2.content ? f2.content : "";
 
@@ -312,6 +231,7 @@ function mergeFiles(file1: Reference, file2: Reference): Reference {
   f1.reference_json = {
     description: (d1 + "\n" + d2).trim(),
     references: [...r1, ...r2],
+    examples: [...e1, ...e2],
   };
   f1.chunk = (f1.chunk || 0) + (f2.chunk || 0);
 

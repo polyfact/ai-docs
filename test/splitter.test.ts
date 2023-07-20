@@ -100,6 +100,8 @@ describe("splitFile", () => {
   });
 });
 
+// TODO: add more tests to cover each use case
+
 describe("splitFilesByTokenCount", () => {
   it("should partition a string array into two separate string arrays based on the number of tokens ", () => {
     const result = splitter.splitFilesByTokenCount(filesList, 5);
