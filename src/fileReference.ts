@@ -72,23 +72,16 @@ const TReference = t.type({
     "The name of the function/method/class/type/structure/etc..."
   ),
   category: t
-    .keyof({
-      function: null,
-      method: null,
-      class: null,
-      type: null,
-      structure: null,
-      enum: null,
-    })
-    .description(
-      'function" | "method" | "class" | "type" | "structure" | "enum" | string'
-    ),
-  prototype: t.string.description(
-    "The prototype of the function or method. Should only be used for functions and methods."
-  ),
+    .union([
+      t.literal("function"),
+      t.literal("method"),
+      t.literal("class"),
+      t.literal("type"),
+      t.literal("structure"),
+      t.literal("enum"),
+      t.string
+    ]),
   description: t.string.description("A 100 word description of its purpose."),
-  parameters: t.array(ReferenceParameter),
-  returns: ReturnsType,
 });
 
 const TPartialReference = t.partial({
@@ -109,6 +102,11 @@ const TPartialReference = t.partial({
     .description(
       "The possible values of the enum. Should only be used for enums."
     ),
+  parameters: t.array(ReferenceParameter),
+  returns: ReturnsType,
+  prototype: t.string.description(
+    "The prototype of the function or method. Should only be used for functions and methods."
+  ),
 });
 
 const TReferenceWithSubreferences = t.intersection([
