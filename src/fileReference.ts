@@ -103,7 +103,7 @@ const TPartialReference = t.partial({
       "The possible values of the enum. Should only be used for enums."
     ),
   parameters: t.array(ReferenceParameter),
-  returns: ReturnsType,
+  returns: t.union([ReturnsType, t.null]),
   prototype: t.string.description(
     "The prototype of the function or method. Should only be used for functions and methods."
   ),
