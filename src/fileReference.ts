@@ -58,13 +58,14 @@ const Example = t.type({
   example: t.string.description(
     "A commented code example that uses the functions in the reference. If the examples are bash command, make it so it's runnable from the root of the project and use the most standard way of running it. (This file path: `root/${path}`)"
   ),
-  example_markdown_language: t.keyof({
-    python: null,
-    rust: null,
-    ruby: null,
-    c: null,
-    bash: null,
-  }),
+  example_markdown_language: t.union([
+    t.literal("python"),
+    t.literal("rust"),
+    t.literal("ruby"),
+    t.literal("c"),
+    t.literal("bash"),
+    t.string,
+  ])
 });
 
 const TReference = t.type({
