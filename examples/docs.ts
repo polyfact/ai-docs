@@ -5,7 +5,7 @@ import {
   generateGettingStarted,
   generateOverview,
   generateSummaryFromStructure,
-} from "ai-docs-package";
+} from "../src";
 
 import { File, Reference, TFolderSummary } from "../src/types";
 

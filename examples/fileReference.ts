@@ -1,4 +1,4 @@
-import { generateReferenceForEachFile } from "../src/fileReference";
+import { generateReferenceForEachFile } from "../src";
 import { File } from "../src/types";
 
 const filesList: File[] = [
