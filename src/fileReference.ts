@@ -1,16 +1,7 @@
-import "dotenv/config";
 import { Reference, File } from "./types";
 import { generateWithType, t } from "polyfact";
 
-import dotenv from "dotenv";
 import { chunkBigFiles, splitFilesByTokenCount } from "./utils/splitter";
-
-dotenv.config();
-
-const { TOKEN_LIMIT, BATCH_SIZE } = process.env;
-
-const maxTokens = Number(TOKEN_LIMIT);
-const batchSize = Number(BATCH_SIZE);
 
 function formatReferencePrompt(content: string, path: string): string {
   return `
@@ -124,7 +115,8 @@ const ReferenceType = t.type({
 
 async function processForEachFile(
   filesList: File[],
-  callback: (file: File) => Promise<Reference>
+  callback: (file: File) => Promise<Reference>,
+  { batchSize = 10, maxTokens = 1000 } = {}
 ): Promise<Reference[]> {
   async function batchProcess(batch: File[]): Promise<Reference[]> {
     return Promise.all(batch.map(callback));
@@ -238,7 +230,8 @@ function mergeFiles(file1: Reference, file2: Reference): Reference {
 
 export async function generateReferenceForEachFile(
   fileList: File[],
-  updateFileProgress: (ref: Reference) => void = () => {}
+  updateFileProgress: (ref: Reference) => void = () => {},
+  { batchSize = 10, maxTokens = 1000 } = {}
 ): Promise<Reference[]> {
   let filesPath: { [key: string]: Reference } = {};
 
@@ -258,7 +251,9 @@ export async function generateReferenceForEachFile(
     }
   }
 
-  return await processForEachFile(fileList, (file: File) =>
-    generateFileReference(file, progress)
+  return await processForEachFile(
+      fileList,
+      (file: File) => generateFileReference(file, progress),
+      { batchSize, maxTokens }
   );
 }
